@@ -1,0 +1,30 @@
+{
+  "name": "partysync",
+  "version": "0.1.0",
+  "private": true,
+  "description": "局域网多设备同步播放。一台电脑当主机，手机扫码接入，全场在同一毫秒起播同一首歌。零运行时依赖。",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js --open",
+    "serve": "node server.js",
+    "gen:music": "node tools/gen-music.js",
+    "gen:test": "node tools/gen-test-audio.js",
+    "mp3": "node tools/wav2mp3.mjs",
+    "test": "node tools/test-sync.js && node tools/test-calib.js && node tools/test-acoustic.js",
+    "test:sync": "node tools/test-sync.js",
+    "test:calib": "node tools/test-calib.js",
+    "test:acoustic": "node tools/test-acoustic.js"
+  },
+  "keywords": [
+    "multi-device",
+    "audio-sync",
+    "web-audio",
+    "clock-sync",
+    "local-network",
+    "party"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@breezystack/lamejs": "^1.2.7"
+  }
+}

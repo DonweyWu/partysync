@@ -1,0 +1,12 @@
+node_modules/
+.shots/
+*.log
+
+# 曲库里的音频不进版本库（体积大、且有版权边界）
+music/*
+!music/夜航 A小调 100BPM.mp3
+!music/同步测试 120BPM.mp3
+
+.DS_Store
+Thumbs.db
+desktop.ini

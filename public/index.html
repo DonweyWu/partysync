@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#08080e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>一起放 · 多设备同步播放</title>
+<link rel="stylesheet" href="/style.css">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" defer></script>
+</head>
+<body data-role="">
+
+<div class="glow glow-a"></div>
+<div class="glow glow-b"></div>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo"><i></i><i></i><i></i></span>
+    <span class="brand-text">一起放</span>
+    <span class="role-tag" id="roleTag">协端</span>
+  </div>
+  <div class="conn" id="conn">
+    <span class="dot"></span>
+    <span id="statusText">连接中</span>
+  </div>
+</header>
+
+<main id="view-listener" class="view">
+
+  <div class="stage">
+    <div class="disc" id="disc">
+      <div class="disc-ring"></div>
+      <div class="disc-core"></div>
+      <div class="disc-bar"></div>
+    </div>
+    <div class="stage-inner">
+      <div class="track-name" id="songName">等待主机放歌</div>
+      <div class="track-sub" id="songSub">连上主机后自动同步播放</div>
+    </div>
+  </div>
+
+  <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="times">
+    <span id="tCur">0:00</span>
+    <span id="tDur">0:00</span>
+  </div>
+
+  <div class="actions">
+    <button class="btn ghost" id="btnLibrary">点歌</button>
+    <button class="btn ghost" id="btnToggleRemote">暂停</button>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><span class="k">同步偏差</span><span class="v" id="mDrift">—</span></div>
+    <div class="metric"><span class="k">时钟往返</span><span class="v" id="mRtt">—</span></div>
+    <div class="metric"><span class="k">在场</span><span class="v" id="mPeers">1</span></div>
+  </div>
+
+  <div class="diag-wrap">
+    <button class="diag-toggle" id="btnDiag">
+      <span>同步诊断</span>
+      <span class="diag-caret" id="diagCaret">展开</span>
+    </button>
+    <div class="diag" id="diag">
+      <div class="drift-box">
+        <canvas id="driftChart" width="640" height="120"></canvas>
+        <div class="drift-label">偏差曲线 · 中线是完美同步 · 绿色带为 ±40ms 容差</div>
+      </div>
+      <div class="diag-grid">
+        <div class="dg"><span>RTT 当前</span><b id="dRtt">—</b></div>
+        <div class="dg"><span>RTT 最小</span><b id="dRttMin">—</b></div>
+        <div class="dg"><span>时钟偏移</span><b id="dOffset">—</b></div>
+        <div class="dg"><span>起播误差</span><b id="dStartErr">—</b></div>
+        <div class="dg"><span>当前偏差</span><b id="dDrift">—</b></div>
+        <div class="dg"><span>缓冲状态</span><b id="dBuffer">—</b></div>
+      </div>
+      <div class="delay-row">
+        <div class="delay-head">
+          <span>本机延迟补偿</span>
+          <b id="delayVal">0 ms</b>
+        </div>
+        <input type="range" id="delayRange" min="-400" max="400" step="10" value="0">
+        <div class="delay-note">用蓝牙耳机或蓝牙音箱时，声音会比实际播放晚 100-300ms，程序无法自动测到。一边放歌一边拖这条滑块，听到节拍完全重合就停手。</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<main id="view-host" class="view">
+
+  <section class="panel transport">
+    <div class="panel-head">
+      <h2>当前播放</h2>
+      <span class="hint" id="hLead">等待选歌</span>
+    </div>
+    <div class="now-line">
+      <div class="now-title" id="hSong">还没有播放内容</div>
+    </div>
+    <div class="progress"><div class="progress-fill" id="hFill"></div></div>
+    <div class="times">
+      <span id="hCur">0:00</span>
+      <span id="hDur">0:00</span>
+    </div>
+    <div class="tctrl">
+      <button class="btn primary" id="hToggle">播放</button>
+      <div class="vol">
+        <span class="vol-ico"></span>
+        <input type="range" id="hVol" min="0" max="100" value="90">
+        <span class="vol-val" id="hVolVal">90</span>
+      </div>
+    </div>
+    <div class="host-delay">
+      <span class="hd-label">本机延迟补偿</span>
+      <input type="range" id="hostDelay" min="-400" max="400" step="10" value="0">
+      <b id="hostDelayVal">0 ms</b>
+    </div>
+    <div class="calib-row">
+      <button class="btn ghost" id="btnCalib">声学校准 · 用麦克风实测</button>
+      <span class="calib-status" id="calibStatus"></span>
+    </div>
+  </section>
+
+  <section class="panel" id="calibPanel" hidden>
+    <div class="panel-head">
+      <h2>声学实测结果</h2>
+      <span class="hint">正数 = 这台比计划晚</span>
+    </div>
+    <ul class="calib-list" id="calibList"></ul>
+    <div class="calib-actions">
+      <button class="btn primary tiny" id="btnApplyCalib">应用为各设备补偿</button>
+      <button class="btn tiny" id="btnCloseCalib">关闭</button>
+    </div>
+    <div class="calib-note">测量方式：麦克风依次录下每台设备单独发出的一声扫频（2 秒间隔，轮流发），比较实际到达时间与计划时间的差。这个差值已经把声卡、扬声器、空气传播全算进去了，正是耳朵听到的偏差。</div>
+  </section>
+
+  <div class="grid">
+    <section class="panel">
+      <div class="panel-head">
+        <h2>手机接入</h2>
+        <span class="hint">连同一 WiFi 扫码</span>
+      </div>
+      <div class="join">
+        <div class="qr" id="qr"><span class="qr-wait">生成中</span></div>
+        <div class="addr">
+          <div class="url" id="joinUrl">—</div>
+          <div class="addr-actions">
+            <button class="btn tiny" id="btnCopy">复制地址</button>
+          </div>
+          <div class="addr-note">扫码后在手机上点一次“就绪”，浏览器才允许自动播放</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>在线设备</h2>
+        <span class="hint" id="peerCount">1 台</span>
+      </div>
+      <ul class="peers" id="peerList"></ul>
+    </section>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>曲库</h2>
+      <span class="hint" id="trackCount">0 首</span>
+    </div>
+    <label class="upload" id="uploadBox">
+      <input type="file" id="fileInput" accept="audio/*" multiple hidden>
+      <span class="up-text">选择音乐文件（可多选 · mp3 / m4a / flac / wav）</span>
+      <span class="up-progress" id="upProgress"></span>
+    </label>
+    <ul class="tracks" id="trackList"></ul>
+  </section>
+
+</main>
+
+<div class="gate hidden" id="gate">
+  <div class="gate-card">
+    <div class="gate-ico"><span></span><span></span><span></span></div>
+    <h2>加入这场派对</h2>
+    <p>浏览器规定必须先有一次点击，才允许自动播放音乐。点一下就好，之后完全由主机控制。</p>
+    <button class="btn primary wide" id="btnReady">就绪，开始同步</button>
+    <div class="gate-sync" id="gateSync">正在校准时钟…</div>
+  </div>
+</div>
+
+<div class="sheet" id="sheet">
+  <div class="sheet-panel">
+    <div class="sheet-head">
+      <h3>点歌</h3>
+      <button class="btn tiny" id="btnCloseSheet">关闭</button>
+    </div>
+    <div class="sheet-note">点击任意歌曲，全场同步切换</div>
+    <ul class="tracks" id="sheetTracks"></ul>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/calib.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
